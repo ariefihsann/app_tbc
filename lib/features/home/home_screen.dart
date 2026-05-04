@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'add_medication_screen.dart'; // Import halaman tambah obat
+import 'add_medication_screen.dart'; // Import halaman form tambah obat
+import 'streak_screen.dart'; // Import halaman Streak
+import 'history_screen.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -35,7 +38,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Fungsi fetch yang sudah diperbaiki agar tidak macet
   Future<void> _fetchMedications() async {
     if (!mounted) return;
     setState(() => _isLoadingMeds = true);
@@ -47,14 +49,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final todayStr = DateTime.now().toIso8601String().split('T')[0];
 
-      // Ambil data
       final medsData = await supabase.from('medications').select().eq('user_id', user.id);
       final logsData = await supabase.from('medication_logs').select().eq('user_id', user.id).eq('log_date', todayStr);
 
       List<Map<String, dynamic>> combined = [];
 
       for (var med in medsData) {
-        // Cari log dengan aman
         final logList = (logsData as List).where((l) => l['medication_id'] == med['id']).toList();
         final log = logList.isNotEmpty ? logList.first : null;
 
@@ -102,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
         'taken_at': newStatus ? DateTime.now().toUtc().toIso8601String() : null,
       }, onConflict: 'user_id, medication_id, log_date');
     } catch (e) {
-      _fetchMedications();
+      _fetchMedications(); // Revert jika gagal
     }
   }
 
@@ -110,6 +110,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
+      // Mencegah layout rusak saat keyboard tiba-tiba muncul (seperti di screenshot)
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           SingleChildScrollView(
@@ -126,7 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // BOTTOM NAV ...
+          // BOTTOM NAVIGATION BAR
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
@@ -151,8 +153,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                  IconButton(icon: const Icon(Icons.history, color: Colors.black54), onPressed: () {}),
-                  IconButton(icon: const Icon(Icons.person_outline, color: Colors.black54), onPressed: () {}),
+                  IconButton(icon: const Icon(Icons.history, color: Colors.black54), onPressed: () {
+                    // Navigasi ke History Screen tanpa menumpuk layar
+                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HistoryScreen()));
+                  },),
+                  IconButton(
+                    icon: const Icon(Icons.person_outline, color: Colors.black54),
+                    onPressed: () {
+                      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
+                    },
+                  ),
                 ],
               ),
             ),
@@ -170,22 +180,29 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center, // <-- Mengubah posisi teks jadi Center
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
-                style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-              const Icon(Icons.notifications_none, color: Colors.white),
-            ],
+          // Baris Notifikasi (Jam dihapus, Icon Notifikasi diletakkan di kanan)
+          const Align(
+            alignment: Alignment.centerRight,
+            child: Icon(Icons.notifications_none, color: Colors.white),
           ),
           const SizedBox(height: 20),
-          Text('Hello, $_userName!!', style: GoogleFonts.poppins(fontSize: 28, color: Colors.white, fontWeight: FontWeight.bold)),
-          Text('Jadwal obat hari ini apa ya??', style: GoogleFonts.poppins(fontSize: 14, color: Colors.white70)),
+
+          // Teks Sapaan yang sudah di-Center
+          Text(
+            'Hello, $_userName!!',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(fontSize: 28, color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            'Jadwal obat hari ini apa ya??',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(fontSize: 14, color: Colors.white70),
+          ),
           const SizedBox(height: 30),
+
+          // Card Highlight
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -223,43 +240,50 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Text('Streak Peats', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white, borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.grey.withOpacity(0.2)),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), shape: BoxShape.circle),
-                      child: const Icon(Icons.local_fire_department, color: Colors.deepOrange),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Most consistent', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold)),
-                          Text('Kamu menyelesaikan\n0 berturut turut', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey)),
-                        ],
+
+          // <-- Ditambahkan GestureDetector untuk pindah ke Halaman Streak
+          GestureDetector(
+            onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const StreakScreen()));
+            },
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white, borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.grey.withOpacity(0.2)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), shape: BoxShape.circle),
+                        child: const Icon(Icons.local_fire_department, color: Colors.deepOrange),
                       ),
-                    ),
-                    Text('0/180 days', style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey)),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: const LinearProgressIndicator(
-                    value: 0.0, minHeight: 8, backgroundColor: Color(0xFFEEEEEE),
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A89F3)),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Most consistent', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold)),
+                            Text('Kamu menyelesaikan\n0 berturut turut', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey)),
+                          ],
+                        ),
+                      ),
+                      Text('0/180 days', style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey)),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: const LinearProgressIndicator(
+                      value: 0.0, minHeight: 8, backgroundColor: Color(0xFFEEEEEE),
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A89F3)),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -279,7 +303,6 @@ class _HomeScreenState extends State<HomeScreen> {
           if (_isLoadingMeds)
             const Center(child: Padding(padding: EdgeInsets.all(20.0), child: CircularProgressIndicator()))
           else if (_todayMeds.isEmpty)
-          // DESAIN EMPTY STATE BARU
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 40),
@@ -296,7 +319,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 20),
                   ElevatedButton.icon(
                     onPressed: () async {
-                      // Pindah ke halaman form, jika kembali (pop), otomatis refresh data
                       await Navigator.push(context, MaterialPageRoute(builder: (context) => const AddMedicationScreen()));
                       _fetchMedications();
                     },
