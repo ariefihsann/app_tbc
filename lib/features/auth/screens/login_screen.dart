@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Import Supabase
 import 'register_screen.dart';
+import '../../home/home_screen.dart'; // Import layar Home
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -10,10 +12,60 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  // 1. Siapkan controller
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+
+  // 2. Fungsi Login
+  Future<void> _signIn() async {
+    setState(() => _isLoading = true);
+    try {
+      final supabase = Supabase.instance.client;
+
+      // Proses autentikasi email & password
+      await supabase.auth.signInWithPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      // Jika berhasil, pindah ke HomeScreen
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
+    } on AuthException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.message), backgroundColor: Colors.red),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Terjadi kesalahan tak terduga'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // BG Layar jadi FFF
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 44.0, vertical: 40.0),
@@ -21,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 20),
-              // Area Logo & Teks Dua Warna (Diperbaiki)
+              // Area Logo & Teks Dua Warna
               Center(
                 child: Column(
                   children: [
@@ -31,7 +83,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       height: 120,
                     ),
                     const SizedBox(height: 8),
-                    // Perbaikan: TB (Grey Muda & Tipis) Checker (Blue)
                     Text.rich(
                       TextSpan(
                         children: [
@@ -39,8 +90,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             text: 'TB',
                             style: GoogleFonts.poppins(
                               fontSize: 22,
-                              fontWeight: FontWeight.w500, // Diperkecil ketebalannya (w500 = Medium)
-                              color: const Color(0xFFBDBDBD), // Abu-abu lebih muda (Grey 300)
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFFBDBDBD),
                             ),
                           ),
                           TextSpan(
@@ -48,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             style: GoogleFonts.poppins(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF4A89F3), // Biru
+                              color: const Color(0xFF4A89F3),
                             ),
                           ),
                         ],
@@ -70,7 +121,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 8),
 
-              // Sub-judul & Sign Up (Navigasi Diperbaiki)
+              // Sub-judul & Sign Up (Link Aktif)
               Row(
                 children: [
                   Text(
@@ -78,23 +129,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: GoogleFonts.poppins(fontSize: 12, color: Colors.black54),
                   ),
                   GestureDetector(
-                    behavior: HitTestBehavior.opaque,
                     onTap: () {
-                      debugPrint("Navigasi ke RegisterScreen dipicu...");
-                      Navigator.push(
+                      Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(builder: (context) => const RegisterScreen()),
                       );
                     },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                      child: Text(
-                        "sign up",
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF4A89F3), // Biru Link
-                        ),
+                    child: Text(
+                      "sign up",
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF4A89F3),
                       ),
                     ),
                   ),
@@ -102,32 +148,20 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 48),
 
-              // Input Username
-              const CustomShadowInput(
-                icon: Icons.person_outline,
-                hintText: '',
+              // Input Email
+              CustomShadowInput(
+                controller: _emailController, // Pasang controller
+                icon: Icons.mail_outline,
+                hintText: 'Email',
               ),
               const SizedBox(height: 24),
 
               // Input Password
-              const CustomShadowInput(
+              CustomShadowInput(
+                controller: _passwordController, // Pasang controller
                 icon: Icons.lock_outline,
-                hintText: '',
+                hintText: 'Password',
                 isPassword: true,
-              ),
-              const SizedBox(height: 12),
-
-              // Forgot Password (Warna #134686)
-              GestureDetector(
-                onTap: () {},
-                child: Text(
-                  "Forgot password?",
-                  style: GoogleFonts.poppins(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF134686),
-                  ),
-                ),
               ),
               const SizedBox(height: 54),
 
@@ -135,7 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Ikon Google (Placeholder Ikon bawaan: PASTI NYALA)
+                  // Ikon Google Placeholder
                   Container(
                     width: 44,
                     height: 44,
@@ -144,41 +178,42 @@ class _LoginScreenState extends State<LoginScreen> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.12), // Shadow halus
+                          color: Colors.black.withOpacity(0.12),
                           blurRadius: 15,
                           offset: const Offset(0, 4),
                         ),
                       ],
                     ),
                     child: const Center(
-                      // PERBAIKAN: Menggunakan ikon bawaan agar tidak silang
                       child: Icon(
-                        Icons.add_to_home_screen_rounded, // Placeholder ikon. Nanti ganti dengan logogoogle.png
+                        Icons.g_mobiledata,
                         color: Colors.grey,
-                        size: 22,
+                        size: 30,
                       ),
                     ),
                   ),
 
-                  // Tombol Login (Biru Terang sesuai Gambar)
+                  // Tombol Login
                   SizedBox(
                     width: 130,
                     height: 46,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: _isLoading ? null : _signIn, // Panggil fungsi login
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF5B92F5), // Biru tombol sesuai gambar
+                        backgroundColor: const Color(0xFF5B92F5),
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(25),
                         ),
                         elevation: 0,
                       ),
-                      child: Row(
+                      child: _isLoading
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'Login',
+                            'login',
                             style: GoogleFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -195,49 +230,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// Widget Input dengan Shadow (Rectangle 7)
-class CustomShadowInput extends StatelessWidget {
-  final IconData icon;
-  final String hintText;
-  final bool isPassword;
-
-  const CustomShadowInput({
-    super.key,
-    required this.icon,
-    required this.hintText,
-    this.isPassword = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 46,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.12), // Shadow halus
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: TextField(
-        obscureText: isPassword,
-        textAlignVertical: TextAlignVertical.center,
-        decoration: InputDecoration(
-          prefixIcon: Icon(icon, color: Colors.grey[400], size: 20),
-          hintText: hintText,
-          border: InputBorder.none,
-          isCollapsed: true,
-          contentPadding: const EdgeInsets.only(right: 16),
         ),
       ),
     );
