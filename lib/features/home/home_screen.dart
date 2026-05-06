@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'add_medication_screen.dart'; // Import halaman form tambah obat
+import 'package:app_tbc/features/home/add_medication_screen.dart';
 import 'streak_screen.dart'; // Import halaman Streak
 import 'history_screen.dart';
 import 'profile_screen.dart';
@@ -49,8 +49,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final todayStr = DateTime.now().toIso8601String().split('T')[0];
 
+      print('🔍 Fetching data for user: ${user.id}');
       final medsData = await supabase.from('medications').select().eq('user_id', user.id);
+      print('📊 Meds fetched: ${medsData.length}');
+      
       final logsData = await supabase.from('medication_logs').select().eq('user_id', user.id).eq('log_date', todayStr);
+      print('📋 Logs fetched: ${logsData.length}');
 
       List<Map<String, dynamic>> combined = [];
 
@@ -58,7 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final logList = (logsData as List).where((l) => l['medication_id'] == med['id']).toList();
         final log = logList.isNotEmpty ? logList.first : null;
 
-        combined.add({
+      combined.add({
           'id': med['id'],
           'name': med['name'],
           'time': med['schedule_time'].toString().substring(0, 5),
@@ -67,7 +71,9 @@ class _HomeScreenState extends State<HomeScreen> {
           'color': const Color(0xFFA5C4F7),
         });
       }
-
+      
+      print('✅ Combined meds to display: ${combined.length}');
+      
       if (mounted) {
         setState(() {
           _todayMeds = combined;
@@ -75,8 +81,13 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     } catch (e) {
-      print('Error data: $e');
-      if (mounted) setState(() => _isLoadingMeds = false);
+      print('❌ Fetch error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memuat data obat: $e')),
+        );
+        setState(() => _isLoadingMeds = false);
+      }
     }
   }
 
@@ -292,50 +303,62 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMedicationSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Obat Hari ini', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
+    return RefreshIndicator(
+      onRefresh: _fetchMedications,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Obat Hari ini', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
 
-          if (_isLoadingMeds)
-            const Center(child: Padding(padding: EdgeInsets.all(20.0), child: CircularProgressIndicator()))
-          else if (_todayMeds.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 40),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.withOpacity(0.2)),
-              ),
-              child: Column(
-                children: [
-                  Icon(Icons.medical_information_outlined, size: 60, color: Colors.grey.shade300),
-                  const SizedBox(height: 16),
-                  Text('Anda belum menambah obat', style: GoogleFonts.poppins(color: Colors.grey, fontSize: 14)),
-                  const SizedBox(height: 20),
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      await Navigator.push(context, MaterialPageRoute(builder: (context) => const AddMedicationScreen()));
-                      _fetchMedications();
-                    },
-                    icon: const Icon(Icons.add, size: 18, color: Colors.white),
-                    label: Text('Tambah Obat', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF5B92F5),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      elevation: 0,
-                    ),
-                  )
-                ],
-              ),
-            )
-          else
-            ..._todayMeds.map((med) => _buildMedicationCard(med)),
-        ],
+              if (_isLoadingMeds)
+                const Center(child: Padding(padding: EdgeInsets.all(20.0), child: CircularProgressIndicator()))
+              else if (_todayMeds.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(Icons.medical_information_outlined, size: 60, color: Colors.grey.shade300),
+                      const SizedBox(height: 16),
+                      Text('Anda belum menambah obat', style: GoogleFonts.poppins(color: Colors.grey, fontSize: 14)),
+                      const SizedBox(height: 20),
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          await Navigator.push(context, MaterialPageRoute(builder: (context) => const AddMedicationScreen()));
+                          _fetchMedications();
+                        },
+                        icon: const Icon(Icons.add, size: 18, color: Colors.white),
+                        label: Text('Tambah Obat', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF5B92F5),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          elevation: 0,
+                        ),
+                      )
+                    ],
+                  ),
+                )
+              else
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _todayMeds.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) => _buildMedicationCard(_todayMeds[index]),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,20 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-
 import 'features/auth/screens/login_screen.dart';
 
-Future<void> main() async {
-
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await dotenv.load(fileName: ".env");
-
+  
   await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+    url: 'https://qsbfmwpmufranowatdba.supabase.co',
+    anonKey: 'sb_publishable_9E9t3ZRaNGwRnpajy0chjA_iLFSSbc7',
   );
-
+  
   runApp(const MyApp());
 }
 
@@ -24,14 +20,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'TBChecker',
-      debugShowCheckedModeBanner: false,
+      title: 'TB Checker',
       theme: ThemeData(
-        useMaterial3: true,
+        fontFamily: GoogleFonts.poppins().fontFamily,
         scaffoldBackgroundColor: Colors.white,
-        fontFamily: 'Poppins', // Memastikan font bawaan sesuai desain Anda
       ),
-      // Langsung arahkan ke layar Login yang sudah kita buat
+      debugShowCheckedModeBanner: false,
       home: const LoginScreen(),
     );
   }

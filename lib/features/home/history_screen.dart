@@ -1,7 +1,9 @@
+import 'package:app_tbc/features/obat/screens/add_obat_screen.dart';
+import 'package:app_tbc/features/obat/screens/detail_obat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../home/home_screen.dart'; // Sesuaikan path ini dengan lokasi home_screen Anda
-import '../home/profile_screen.dart'; // Sesuaikan path ini dengan lokasi profile_screen Anda
+import '../home/home_screen.dart';
+import '../home/profile_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -11,23 +13,66 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  // --- MOCK DATA KALENDER ---
-  // isSelected: penanda hari yang sedang diklik
-  // dots: status obat. true = hijau (diminum), false = merah (terlewat)
-  // Kalau array-nya kosong [], berarti belum ada jadwal/belum lewat harinya
-  final List<Map<String, dynamic>> _calendarDays = [
-    {'day': '23', 'dayName': 'SUN', 'dots': [true, true], 'isSelected': false},
-    {'day': '24', 'dayName': 'MON', 'dots': [false, true], 'isSelected': false},
-    {'day': '25', 'dayName': 'TUE', 'dots': [true, true], 'isSelected': false},
-    {'day': '26', 'dayName': 'WED', 'dots': [true, true], 'isSelected': false},
-    {'day': '27', 'dayName': 'THU', 'dots': [true, true], 'isSelected': false},
-    {'day': '28', 'dayName': 'FRI', 'dots': [false, true], 'isSelected': false},
-    {'day': '29', 'dayName': 'SAT', 'dots': [true, true], 'isSelected': false},
-    {'day': '30', 'dayName': 'SUN', 'dots': [true, true], 'isSelected': true}, // Hari ini
-    {'day': '31', 'dayName': 'MON', 'dots': [], 'isSelected': false},
-    {'day': '1', 'dayName': 'TUE', 'dots': [], 'isSelected': false},
-    {'day': '2', 'dayName': 'WED', 'dots': [], 'isSelected': false},
+  // --- DATA OBAT UNTUK DITAMPILKAN ---
+  final List<Map<String, dynamic>> _todayMedications = [
+    {
+      'id': '1',
+      'name': 'Rifampicin',
+      'dosage': 'Dosis 2 pill',
+      'timeStart': '09.00',
+      'timeEnd': '10.00',
+      'iconColor': const Color(0xFFE2C8A0),
+      'schedule_time': '09:00:00',
+      'notes': 'Diminum sebelum makan',
+      'isTaken': false,
+    },
+    {
+      'id': '2',
+      'name': 'Pyrazinamide',
+      'dosage': 'Dosis Kapsul',
+      'timeStart': '07.00',
+      'timeEnd': '08.00',
+      'iconColor': const Color(0xFFA5C4F7),
+      'schedule_time': '07:00:00',
+      'notes': 'Diminum sesudah makan',
+      'isTaken': true,
+    },
   ];
+
+  // --- MOCK DATA KALENDER ---
+  final List<Map<String, dynamic>> _calendarDays = [
+    {'day': '23', 'dayName': 'SUN', 'dots': [true, true], 'isSelected': false, 'date': DateTime(2024, 2, 23)},
+    {'day': '24', 'dayName': 'MON', 'dots': [false, true], 'isSelected': false, 'date': DateTime(2024, 2, 24)},
+    {'day': '25', 'dayName': 'TUE', 'dots': [true, true], 'isSelected': false, 'date': DateTime(2024, 2, 25)},
+    {'day': '26', 'dayName': 'WED', 'dots': [true, true], 'isSelected': false, 'date': DateTime(2024, 2, 26)},
+    {'day': '27', 'dayName': 'THU', 'dots': [true, true], 'isSelected': false, 'date': DateTime(2024, 2, 27)},
+    {'day': '28', 'dayName': 'FRI', 'dots': [false, true], 'isSelected': false, 'date': DateTime(2024, 2, 28)},
+    {'day': '29', 'dayName': 'SAT', 'dots': [true, true], 'isSelected': false, 'date': DateTime(2024, 2, 29)},
+    {'day': '30', 'dayName': 'SUN', 'dots': [true, true], 'isSelected': true, 'date': DateTime(2024, 2, 30)},
+    {'day': '31', 'dayName': 'MON', 'dots': [], 'isSelected': false, 'date': DateTime(2024, 2, 31)},
+    {'day': '1', 'dayName': 'TUE', 'dots': [], 'isSelected': false, 'date': DateTime(2024, 3, 1)},
+    {'day': '2', 'dayName': 'WED', 'dots': [], 'isSelected': false, 'date': DateTime(2024, 3, 2)},
+  ];
+
+  // Fungsi untuk navigasi ke detail obat
+  void _navigateToDetail(Map<String, dynamic> medication) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DetailObatScreen(
+          medication: medication,
+          selectedDate: DateTime.now(),
+        ),
+      ),
+    ).then((result) {
+      // Jika ada perubahan (edit/hapus), refresh data di sini
+      if (result == true) {
+        setState(() {
+          // Refresh data jika perlu
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +85,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 60), // Margin atas (Status Bar)
+                const SizedBox(height: 60),
 
                 // HEADER
                 Padding(
@@ -49,13 +94,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('Kalender', style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold)),
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFF1E293B)),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const AddObatScreen()),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFF1E293B)),
+                          ),
+                          child: const Icon(Icons.add, size: 20, color: Color(0xFF1E293B)),
                         ),
-                        child: const Icon(Icons.add, size: 20, color: Color(0xFF1E293B)),
                       )
                     ],
                   ),
@@ -73,35 +126,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Obat 1
-                _buildMedicationTimeline(
-                  timeStart: '09.00', timeEnd: '10.00',
-                  medName: 'Rifampicin', dosage: 'Dosis 2 pill',
-                  iconColor: const Color(0xFFE2C8A0),
-                ),
+                // Daftar Obat - Menggunakan loop agar bisa diklik
+                ..._todayMedications.map((med) => _buildMedicationTimeline(
+                  timeStart: med['timeStart'],
+                  timeEnd: med['timeEnd'],
+                  medName: med['name'],
+                  dosage: med['dosage'],
+                  iconColor: med['iconColor'],
+                  medicationData: med,
+                  onTap: () => _navigateToDetail(med),
+                )),
 
-                // Garis Indikator Waktu Sekarang (Garis Biru Horizontal)
-                Padding(
-                  padding: const EdgeInsets.only(left: 24, right: 24, top: 8, bottom: 8),
-                  child: Row(
-                    children: [
-                      Container(width: 10, height: 10, decoration: const BoxDecoration(color: Color(0xFF5B92F5), shape: BoxShape.circle)),
-                      Expanded(child: Container(height: 2, color: const Color(0xFF5B92F5))),
-                    ],
-                  ),
-                ),
-
-                // Obat 2
-                _buildMedicationTimeline(
-                  timeStart: '07.00', timeEnd: '08.00',
-                  medName: 'Pyrazinamide', dosage: 'Dosis Kapsul',
-                  iconColor: const Color(0xFFA5C4F7),
-                ),
+                const SizedBox(height: 40),
               ],
             ),
           ),
 
-          // BOTTOM NAVIGATION BAR KHUSUS HISTORY
+          // BOTTOM NAVIGATION BAR
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
@@ -110,20 +151,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
               decoration: BoxDecoration(
                 color: const Color(0xFFE8EEF9),
                 borderRadius: BorderRadius.circular(40),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, 10))],
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10))],
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  // Tombol Home (Kembali ke Beranda)
                   IconButton(
                     icon: const Icon(Icons.home_outlined, color: Colors.black54),
                     onPressed: () {
                       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
                     },
                   ),
-
-                  // Tombol History (Aktif)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
@@ -135,7 +173,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       ],
                     ),
                   ),
-                  // Tombol Profile
                   IconButton(
                     icon: const Icon(Icons.person_outline, color: Colors.black54),
                     onPressed: () {
@@ -151,7 +188,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  // --- WIDGET KALENDER UTAMA ---
   Widget _buildCalendarWidget() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
@@ -159,11 +195,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 15, offset: const Offset(0, 5))],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 5))],
       ),
       child: Column(
         children: [
-          // Navigasi Bulan
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
@@ -176,8 +211,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
           ),
           const SizedBox(height: 24),
-
-          // Nama Hari (SUN, MON, TUE...)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -191,8 +224,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
           ),
           const SizedBox(height: 16),
-
-          // List Tanggal Horizontal
           SizedBox(
             height: 70,
             child: ListView.builder(
@@ -223,16 +254,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      // Indikator Titik (Merah / Hijau)
                       if (dots.isNotEmpty)
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: dots.map((isSuccess) {
                             Color dotColor;
                             if (isSelected) {
-                              dotColor = Colors.white; // Jika kotak biru, titiknya warna putih
+                              dotColor = Colors.white;
                             } else {
-                              dotColor = isSuccess ? Colors.green : Colors.redAccent; // Titik normal
+                              dotColor = isSuccess ? Colors.green : Colors.redAccent;
                             }
                             return Container(
                               margin: const EdgeInsets.symmetric(horizontal: 1.5),
@@ -242,7 +272,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           }).toList(),
                         )
                       else
-                        const SizedBox(height: 4), // Placeholder jika tidak ada jadwal
+                        const SizedBox(height: 4),
                     ],
                   ),
                 );
@@ -254,64 +284,100 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  // --- WIDGET CARD OBAT & TIMELINE ---
-  Widget _buildMedicationTimeline({required String timeStart, required String timeEnd, required String medName, required String dosage, required Color iconColor}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center, // Agar kotak berada di tengah antara 2 jam
-        children: [
-          // Kolom Waktu
-          SizedBox(
-            width: 50,
-            height: 80, // Tinggi disejajarkan dengan card
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween, // 10.00 di atas, 09.00 di bawah
-              children: [
-                Text(timeEnd, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey)),
-                Text(timeStart, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey)),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          // Card Obat
-          Expanded(
-            child: Container(
+  // --- WIDGET CARD OBAT & TIMELINE dengan onTap ---
+  Widget _buildMedicationTimeline({
+    required String timeStart,
+    required String timeEnd,
+    required String medName,
+    required String dosage,
+    required Color iconColor,
+    required Map<String, dynamic> medicationData,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Kolom Waktu
+            SizedBox(
+              width: 50,
               height: 80,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Row(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Garis biru di sisi kiri card
-                  Container(width: 3, height: double.infinity, decoration: BoxDecoration(color: const Color(0xFF5B92F5), borderRadius: BorderRadius.circular(2))),
-                  const SizedBox(width: 16),
-                  // Icon Lingkaran Pil
-                  Container(
-                    width: 40, height: 40,
-                    decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.3), shape: BoxShape.circle),
-                    child: Icon(Icons.medication, color: iconColor), // Bisa diganti image.asset nanti
-                  ),
-                  const SizedBox(width: 16),
-                  // Teks Nama & Dosis
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(medName, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold)),
-                        Text(dosage, style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey)),
-                      ],
-                    ),
-                  )
+                  Text(timeEnd, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey)),
+                  Text(timeStart, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey)),
                 ],
               ),
             ),
-          )
-        ],
+            const SizedBox(width: 16),
+            // Card Obat
+            Expanded(
+              child: Container(
+                height: 80,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  children: [
+                    // Garis status di sisi kiri (hijau jika sudah diminum)
+                    Container(
+                      width: 3,
+                      height: double.infinity,
+                      decoration: BoxDecoration(
+                        color: medicationData['isTaken'] == true ? Colors.green : const Color(0xFF5B92F5),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Icon Lingkaran Pil
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: iconColor.withOpacity(0.3),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.medication, color: iconColor),
+                    ),
+                    const SizedBox(width: 16),
+                    // Teks Nama & Dosis
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(medName, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold)),
+                          Text(dosage, style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey)),
+                        ],
+                      ),
+                    ),
+                    // Icon indicator (centang jika sudah diminum)
+                    if (medicationData['isTaken'] == true)
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.check_circle,
+                          size: 16,
+                          color: Colors.green,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
