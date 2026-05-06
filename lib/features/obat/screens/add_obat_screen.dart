@@ -22,36 +22,61 @@ class _AddObatScreenState extends State<AddObatScreen> {
   String _selectedUnit = 'Mg';
   String _selectedFrequency = '2x Sehari';
   String _selectedPillUnit = 'Pil';
-  TimeOfDay _selectedTime = TimeOfDay.now();
   DateTime? _startDate;
   DateTime? _endDate;
   bool _isLoading = false;
   
   // Options
-  final List<String> _unitOptions = ['Mg', 'Ml', 'Gram', ' mcg'];
+  final List<String> _unitOptions = ['Mg', 'Ml', 'Gram', 'mcg'];
   final List<String> _frequencyOptions = ['1x Sehari', '2x Sehari', '3x Sehari'];
   final List<String> _pillUnitOptions = ['Pil', 'Kapsul', 'Tablet', 'Sendok'];
   
-  // Multiple time options (for 2x sehari, etc.)
-  List<TimeOfDay> _multipleTimes = [TimeOfDay.now(), TimeOfDay.now()];
-  List<bool> _timeChecked = [true, true];
+  // Multiple time options - Dinamis berdasarkan frekuensi
+  List<TimeOfDay> _multipleTimes = [];
+  List<bool> _timeChecked = [];
 
   @override
   void initState() {
     super.initState();
     _startDate = DateTime.now();
     _endDate = DateTime.now().add(const Duration(days: 180));
-    _initializeMultipleTimes();
+    _initializeTimeSlots();
   }
 
-  void _initializeMultipleTimes() {
-    // Set default times: 08:00 and 18:00
-    _multipleTimes = [
-      const TimeOfDay(hour: 8, minute: 0),
-      const TimeOfDay(hour: 18, minute: 0),
-    ];
-    _timeChecked = [true, true];
-    _selectedTime = _multipleTimes[0];
+  void _initializeTimeSlots() {
+    // Reset time slots berdasarkan frekuensi
+    _multipleTimes = [];
+    _timeChecked = [];
+    
+    int timeCount = _getTimeCountByFrequency();
+    
+    for (int i = 0; i < timeCount; i++) {
+      // Set default times: jam 8 untuk pertama, jam 12 untuk kedua, jam 18 untuk ketiga
+      if (i == 0) {
+        _multipleTimes.add(const TimeOfDay(hour: 8, minute: 0));
+      } else if (i == 1) {
+        _multipleTimes.add(const TimeOfDay(hour: 12, minute: 0));
+      } else {
+        _multipleTimes.add(const TimeOfDay(hour: 18, minute: 0));
+      }
+      _timeChecked.add(true);
+    }
+  }
+
+  int _getTimeCountByFrequency() {
+    if (_selectedFrequency == '1x Sehari') return 1;
+    if (_selectedFrequency == '2x Sehari') return 2;
+    if (_selectedFrequency == '3x Sehari') return 3;
+    return 2;
+  }
+
+  void _onFrequencyChanged(String? newFrequency) {
+    if (newFrequency != null) {
+      setState(() {
+        _selectedFrequency = newFrequency;
+        _initializeTimeSlots();
+      });
+    }
   }
 
   Future<void> _selectStartDate(BuildContext context) async {
@@ -106,9 +131,13 @@ class _AddObatScreenState extends State<AddObatScreen> {
   String _formatTime(TimeOfDay time) {
     final hour = time.hour.toString().padLeft(2, '0');
     final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  String _formatTime12Hour(TimeOfDay time) {
     final period = time.hour >= 12 ? 'PM' : 'AM';
     final hour12 = time.hour > 12 ? time.hour - 12 : (time.hour == 0 ? 12 : time.hour);
-    return '$hour12:$minute $period';
+    return '$hour12:${time.minute.toString().padLeft(2, '0')} $period';
   }
 
   String _formatDate(DateTime date) {
@@ -138,13 +167,10 @@ class _AddObatScreenState extends State<AddObatScreen> {
       if (user == null) return;
 
       // Build dosage string
-      final dosageText = "${_dosageController.text.trim()} ${_selectedUnit}";
+      final dosageText = "${_dosageController.text.trim()} $_selectedUnit";
       
-      // Build frequency text with times
+      // Get active times (only checked ones)
       final activeTimes = _getActiveTimes();
-      final frequencyText = _selectedFrequency;
-      
-      // Build schedule times as JSON or comma separated
       final scheduleTimes = activeTimes.map((t) => _formatTimeForDB(t)).join(',');
       
       // Format dates
@@ -162,7 +188,7 @@ class _AddObatScreenState extends State<AddObatScreen> {
         'quantity_per_intake': int.tryParse(_perIntakeController.text.trim()) ?? 1,
         'per_intake_unit': _selectedPillUnit,
         'schedule_times': scheduleTimes,
-        'schedule_time': scheduleTimes.split(',')[0], // For backward compatibility
+        'schedule_time': scheduleTimes.split(',').first,
         'start_date': startDateStr,
         'end_date': endDateStr,
         'notes': _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
@@ -268,7 +294,7 @@ class _AddObatScreenState extends State<AddObatScreen> {
             _buildDropdown(
               value: _selectedFrequency,
               items: _frequencyOptions,
-              onChanged: (value) => setState(() => _selectedFrequency = value!),
+              onChanged: _onFrequencyChanged,
             ),
             const SizedBox(height: 20),
 
@@ -330,7 +356,7 @@ class _AddObatScreenState extends State<AddObatScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Waktu Minum
+            // Waktu Minum - Tanpa Label Pertama/Kedua/Ketiga
             _buildSectionTitle('Waktu Minum'),
             const SizedBox(height: 8),
             Column(
@@ -375,7 +401,7 @@ class _AddObatScreenState extends State<AddObatScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  _formatTime(_multipleTimes[index]),
+                                  _formatTime12Hour(_multipleTimes[index]),
                                   style: GoogleFonts.poppins(
                                     fontSize: 14,
                                     color: _timeChecked[index] 
@@ -395,8 +421,6 @@ class _AddObatScreenState extends State<AddObatScreen> {
                           ),
                         ),
                       ),
-                      if (index == _multipleTimes.length - 1 && _selectedFrequency != '1x Sehari')
-                        const SizedBox(width: 30),
                     ],
                   ),
                 );
