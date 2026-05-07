@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'features/auth/screens/login_screen.dart';
+import 'package:app_tbc/core/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -10,6 +11,7 @@ void main() async {
     url: 'https://qsbfmwpmufranowatdba.supabase.co',
     anonKey: 'sb_publishable_9E9t3ZRaNGwRnpajy0chjA_iLFSSbc7',
   );
+  await NotificationService().init();
   
   runApp(const MyApp());
 }

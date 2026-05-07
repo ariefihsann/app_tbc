@@ -71,7 +71,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: const Color(0xFFF8F9FA), // Warna background senada
       body: Stack(
         children: [
-          // KONTEN UTAMA
           SingleChildScrollView(
             padding: const EdgeInsets.only(bottom: 120),
             child: Column(
@@ -79,14 +78,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 const SizedBox(height: 100), // Spasi atas
 
-                // Foto Profil
                 Container(
                   width: 100, height: 100,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: Colors.grey.shade300,
                     image: const DecorationImage(
-                      // Gambar dummy, nantinya bisa pakai NetworkImage
                       image: AssetImage('assets/images/logo_tbc.png'),
                       fit: BoxFit.cover,
                     ),
@@ -107,7 +104,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 40),
 
-                // WIDGET MENU SETTING
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 24),
                   decoration: BoxDecoration(
@@ -193,7 +189,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
                     },
                   ),
-                  // Tombol History (Inactive)
                   IconButton(
                     icon: const Icon(Icons.history, color: Colors.black54),
                     onPressed: () {

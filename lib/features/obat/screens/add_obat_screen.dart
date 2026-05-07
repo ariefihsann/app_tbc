@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:app_tbc/core/services/notification_service.dart';clear
+
 
 class AddObatScreen extends StatefulWidget {
   const AddObatScreen({super.key});
@@ -168,6 +170,28 @@ class _AddObatScreenState extends State<AddObatScreen> {
         'notes': _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         'created_at': DateTime.now().toIso8601String(),
       });
+
+      try {
+        print('\n=== 🚀 MULAI MEMASANG ALARM TES ===');
+
+        // KITA PAKSA ALARM BUNYI TEPAT 1 MENIT DARI TOMBOL SIMPAN DITEKAN
+        // Mengabaikan jam yang dipilih di layar UI
+        final waktuTes = TimeOfDay.fromDateTime(DateTime.now().add(const Duration(minutes: 1)));
+        print('⏰ Alarm diset untuk jam: ${waktuTes.hour}:${waktuTes.minute}');
+
+        await NotificationService().scheduleDailyMedicationReminder(
+          id: 999,
+          title: 'TES NOTIFIKASI!',
+          body: 'Notifikasi berhasil menyala Mas Arif!',
+          time: waktuTes,
+        );
+
+        print('=== ✅ ALARM BERHASIL DIPASANG ===\n');
+      } catch (err) {
+        print('\n=== ❌ GAGAL MEMASANG ALARM ===');
+        print('Alasan Error: $err');
+        print('================================\n');
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:app_tbc/core/services/notification_service.dart';
 
 class AddMedicationScreen extends StatefulWidget {
   const AddMedicationScreen({super.key});
@@ -124,6 +125,7 @@ Catatan: ${_notesController.text.trim()}
       };
 
       await supabase.from('medications').insert(data);
+      // Aktifkan alarm notifikasi di HP User
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
