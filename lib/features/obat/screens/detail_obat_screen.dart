@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'add_obat_screen.dart';
+import 'package:intl/intl.dart';
+import 'edit_obat_screen.dart';  // Tambahkan import ini
 
 class DetailObatScreen extends StatefulWidget {
   final Map<String, dynamic> medication;
@@ -29,43 +30,101 @@ class _DetailObatScreenState extends State<DetailObatScreen> {
     _medication = Map.from(widget.medication);
     _isTaken = _medication['isTaken'] ?? false;
     _takenAt = _medication['takenAt'];
-    
-    // Debug print untuk melihat data
-    print('=== DETAIL OBAT DATA ===');
-    print('Medication: $_medication');
-    print('isTaken: $_isTaken');
-    print('takenAt: $_takenAt');
   }
 
-  // Helper function untuk mendapatkan waktu dengan aman
+  // Helper functions
   String _getSafeTime() {
-    if (_medication['time'] != null) {
+    if (_medication['time'] != null && _medication['time'].toString().isNotEmpty) {
       return _medication['time'];
     }
     if (_medication['schedule_time'] != null) {
-      String timeStr = _medication['schedule_time'];
+      String timeStr = _medication['schedule_time'].toString();
       if (timeStr.length >= 5) {
         return timeStr.substring(0, 5);
       }
       return timeStr;
     }
+    if (_medication['schedule_times'] != null) {
+      String times = _medication['schedule_times'].toString();
+      return times.split(',').first.substring(0, 5);
+    }
     return '--:--';
   }
 
-  // Helper function untuk mendapatkan dosis dengan aman
   String _getSafeDosage() {
     if (_medication['dosage'] != null && _medication['dosage'].toString().isNotEmpty) {
       return _medication['dosage'].toString();
     }
+    if (_medication['dosage_value'] != null) {
+      return '${_medication['dosage_value']} ${_medication['dosage_unit'] ?? 'Mg'}';
+    }
     return '1 pill';
   }
 
-  // Helper function untuk mendapatkan catatan dengan aman
-  String? _getSafeNotes() {
+  String _getSafeFrequency() {
+    if (_medication['frequency'] != null && _medication['frequency'].toString().isNotEmpty) {
+      return _medication['frequency'];
+    }
+    if (_medication['schedule_times'] != null) {
+      int count = _medication['schedule_times'].toString().split(',').length;
+      return '$count x Sehari';
+    }
+    return '1 x Sehari';
+  }
+
+  String _getSafeTotalQuantity() {
+    if (_medication['total_quantity'] != null) {
+      return '${_medication['total_quantity']} ${_medication['per_intake_unit'] ?? 'Pil'}';
+    }
+    return '-';
+  }
+
+  String _getSafePerIntake() {
+    if (_medication['quantity_per_intake'] != null) {
+      return '${_medication['quantity_per_intake']} ${_medication['per_intake_unit'] ?? 'Pil'}';
+    }
+    return '-';
+  }
+
+  String _getSafeDuration() {
+    if (_medication['start_date'] != null && _medication['end_date'] != null) {
+      String start = _formatDateString(_medication['start_date'].toString());
+      String end = _formatDateString(_medication['end_date'].toString());
+      return '$start s/d $end';
+    }
+    return '-';
+  }
+
+  String _formatDateString(String dateStr) {
+    try {
+      DateTime date = DateTime.parse(dateStr);
+      return DateFormat('dd MMM yyyy').format(date);
+    } catch (e) {
+      return dateStr;
+    }
+  }
+
+  String _getSafeNotes() {
     if (_medication['notes'] != null && _medication['notes'].toString().isNotEmpty) {
       return _medication['notes'].toString();
     }
-    return null;
+    return '-';
+  }
+
+  String _getSafeScheduleTimes() {
+    if (_medication['schedule_times'] != null && _medication['schedule_times'].toString().isNotEmpty) {
+      List<String> times = _medication['schedule_times'].toString().split(',');
+      List<String> formattedTimes = [];
+      for (var t in times) {
+        if (t.length >= 5) {
+          formattedTimes.add(t.substring(0, 5));
+        } else {
+          formattedTimes.add(t);
+        }
+      }
+      return formattedTimes.join(', ');
+    }
+    return _getSafeTime();
   }
 
   Future<void> _toggleMedication() async {
@@ -99,7 +158,6 @@ class _DetailObatScreenState extends State<DetailObatScreen> {
         );
       }
     } catch (e) {
-      // Revert if failed
       setState(() {
         _isTaken = !newStatus;
         _takenAt = !newStatus ? DateTime.now() : null;
@@ -156,6 +214,7 @@ class _DetailObatScreenState extends State<DetailObatScreen> {
     }
   }
 
+  // REVISI METHOD INI - langsung ke file edit_obat_screen.dart
   Future<void> _editMedication() async {
     final result = await Navigator.push(
       context,
@@ -164,6 +223,7 @@ class _DetailObatScreenState extends State<DetailObatScreen> {
       ),
     );
     if (result == true) {
+      // Refresh data setelah edit
       Navigator.pop(context, true);
     }
   }
@@ -265,7 +325,7 @@ class _DetailObatScreenState extends State<DetailObatScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Informasi Obat
+                  // Informasi Obat Lengkap
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
@@ -284,31 +344,63 @@ class _DetailObatScreenState extends State<DetailObatScreen> {
                           ),
                         ),
                         const SizedBox(height: 20),
+                        
                         _buildInfoRow(
                           icon: Icons.access_time,
                           label: 'Waktu Minum',
-                          value: _getSafeTime(),
+                          value: _getSafeScheduleTimes(),
                         ),
                         const Divider(height: 24),
+                        
                         _buildInfoRow(
                           icon: Icons.medication,
                           label: 'Dosis',
                           value: _getSafeDosage(),
                         ),
-                        if (_getSafeNotes() != null) ...[
+                        const Divider(height: 24),
+                        
+                        _buildInfoRow(
+                          icon: Icons.repeat,
+                          label: 'Frekuensi',
+                          value: _getSafeFrequency(),
+                        ),
+                        const Divider(height: 24),
+                        
+                        _buildInfoRow(
+                          icon: Icons.inventory_2_outlined,
+                          label: 'Jumlah Obat',
+                          value: _getSafeTotalQuantity(),
+                        ),
+                        const Divider(height: 24),
+                        
+                        _buildInfoRow(
+                          icon: Icons.medication_liquid,
+                          label: 'Jumlah Sekali Minum',
+                          value: _getSafePerIntake(),
+                        ),
+                        const Divider(height: 24),
+                        
+                        _buildInfoRow(
+                          icon: Icons.calendar_today,
+                          label: 'Durasi',
+                          value: _getSafeDuration(),
+                        ),
+                        
+                        if (_getSafeNotes() != '-') ...[
                           const Divider(height: 24),
                           _buildInfoRow(
                             icon: Icons.note_alt_outlined,
                             label: 'Catatan',
-                            value: _getSafeNotes()!,
+                            value: _getSafeNotes(),
                           ),
                         ],
+                        
                         if (_takenAt != null) ...[
                           const Divider(height: 24),
                           _buildInfoRow(
                             icon: Icons.check_circle_outline,
                             label: 'Diminum Pada',
-                            value: '${_takenAt!.hour.toString().padLeft(2, '0')}:${_takenAt!.minute.toString().padLeft(2, '0')}',
+                            value: DateFormat('dd MMM yyyy, HH:mm').format(_takenAt!),
                           ),
                         ],
                       ],
@@ -363,6 +455,7 @@ class _DetailObatScreenState extends State<DetailObatScreen> {
     required String value,
   }) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           width: 40,
@@ -398,236 +491,5 @@ class _DetailObatScreenState extends State<DetailObatScreen> {
         ),
       ],
     );
-  }
-}
-
-// Edit Obat Screen
-class EditObatScreen extends StatefulWidget {
-  final Map<String, dynamic> medication;
-
-  const EditObatScreen({super.key, required this.medication});
-
-  @override
-  State<EditObatScreen> createState() => _EditObatScreenState();
-}
-
-class _EditObatScreenState extends State<EditObatScreen> {
-  late TextEditingController _nameController;
-  late TextEditingController _dosageController;
-  late TextEditingController _notesController;
-  late TimeOfDay _selectedTime;
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _nameController = TextEditingController(text: widget.medication['name'] ?? '');
-    _dosageController = TextEditingController(text: widget.medication['dosage'] ?? '');
-    _notesController = TextEditingController(text: widget.medication['notes'] ?? '');
-    
-    // Safety check untuk time
-    String timeStr = widget.medication['time'] ?? widget.medication['schedule_time'] ?? '08:00:00';
-    if (timeStr.contains(':')) {
-      final parts = timeStr.split(':');
-      int hour = int.tryParse(parts[0]) ?? 8;
-      int minute = int.tryParse(parts[1]) ?? 0;
-      _selectedTime = TimeOfDay(hour: hour, minute: minute);
-    } else {
-      _selectedTime = const TimeOfDay(hour: 8, minute: 0);
-    }
-  }
-
-  Future<void> _selectTime(BuildContext context) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: _selectedTime,
-    );
-    if (picked != null && picked != _selectedTime) {
-      setState(() {
-        _selectedTime = picked;
-      });
-    }
-  }
-
-  Future<void> _updateMedication() async {
-    if (_nameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nama obat tidak boleh kosong!')),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      final supabase = Supabase.instance.client;
-      final user = supabase.auth.currentUser;
-      if (user == null) return;
-
-      final timeStr = "${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}:00";
-
-      final updateData = {
-        'name': _nameController.text.trim(),
-        'schedule_time': timeStr,
-      };
-      
-      if (_dosageController.text.trim().isNotEmpty) {
-        updateData['dosage'] = _dosageController.text.trim();
-      }
-      
-      if (_notesController.text.trim().isNotEmpty) {
-        updateData['notes'] = _notesController.text.trim();
-      }
-
-      await supabase.from('medications').update(updateData).eq('id', widget.medication['id']);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Obat berhasil diupdate')),
-        );
-        Navigator.pop(context, true);
-      }
-    } catch (e) {
-      print('Error update: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal mengupdate obat')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Text(
-          'Edit Obat',
-          style: GoogleFonts.poppins(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        iconTheme: const IconThemeData(color: Colors.black),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Nama Obat',
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(
-                hintText: 'Misal: Rifampicin',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Dosis',
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _dosageController,
-              decoration: InputDecoration(
-                hintText: 'Misal: 2 pill atau 1 kapsul',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Waktu Minum',
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () => _selectTime(context),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}',
-                      style: GoogleFonts.poppins(fontSize: 16),
-                    ),
-                    const Icon(Icons.access_time, color: Colors.grey),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Catatan (Opsional)',
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _notesController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'Contoh: Diminum sebelum makan',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-              ),
-            ),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _updateMedication,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF5B92F5),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                ),
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : Text(
-                        'Update',
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _dosageController.dispose();
-    _notesController.dispose();
-    super.dispose();
   }
 }
