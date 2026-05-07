@@ -22,9 +22,8 @@ class NotificationService {
       android: androidSettings,
     );
 
-    await _notificationsPlugin.initialize(
-      settings: initSettings, // Catatan: Jika tulisan ini masih merah, coba ganti kata "initializationSettings:" menjadi "settings:"
-    );
+    // FIX 1: Hapus kata "settings:" karena sekarang dia positional argument
+    await _notificationsPlugin.initialize(initSettings);
 
     // 3. Minta izin notifikasi
     await _notificationsPlugin
@@ -61,15 +60,16 @@ class NotificationService {
 
     const NotificationDetails notificationDetails = NotificationDetails(android: androidDetails);
 
-    // FIX VERSI TERBARU: Semua argumen wajib ditulis nama parameternya
+    // FIX 2: 5 Argumen pertama (id sampai notificationDetails) WAJIB ditulis tanpa nama parameter.
+    // 'uiLocalNotificationDateInterpretation' WAJIB ADA di versi terbaru ini.
     await _notificationsPlugin.zonedSchedule(
-      id: id,
-      title: title,
-      body: body,
-      scheduledDate: scheduledDate,
-      notificationDetails: notificationDetails,
+      id,                   // Positional argumen 1
+      title,                // Positional argumen 2
+      body,                 // Positional argumen 3
+      scheduledDate,        // Positional argumen 4
+      notificationDetails,  // Positional argumen 5
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      // 'uiLocalNotificationDateInterpretation' sudah dihapus dari aturan versi terbaru, jadi kita buang.
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 }
