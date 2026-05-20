@@ -86,32 +86,29 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ? _formatTimeForDisplay(times.last)
             : timeStart;
 
+        // --- PERBAIKAN DI SINI ---
+        // Menggunakan ...med untuk menyalin SELURUH kolom dari database
         combined.add({
-          'id': med['id'],
-          'name': med['name'],
-          'dosage': med['dosage'] ?? '1 pill',
+          ...med,
           'timeStart': timeStart,
           'timeEnd': timeEnd,
-          'schedule_time': med['schedule_time'],
-          'schedule_times': med['schedule_times'],
-          'notes': med['notes'],
           'isTaken': log != null ? log['is_taken'] : false,
           'takenAt': (log != null && log['taken_at'] != null)
               ? DateTime.parse(log['taken_at']).toLocal()
               : null,
-          'iconColor': _getColorForMed(med['name']),
+          'iconColor': _getColorForMed(med['name'] ?? ''),
         });
       }
 
       combined.sort((a, b) {
         String timeA =
             a['schedule_times']?.toString().split(',').first ??
-            a['schedule_time'] ??
-            '00:00';
+                a['schedule_time'] ??
+                '00:00';
         String timeB =
             b['schedule_times']?.toString().split(',').first ??
-            b['schedule_time'] ??
-            '00:00';
+                b['schedule_time'] ??
+                '00:00';
         return timeA.compareTo(timeB);
       });
 
@@ -164,11 +161,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
       // Generate calendar days - dengan urutan Senin pertama
       List<Map<String, dynamic>> days = [];
-      
+
       // Hitung berapa hari kosong di awal bulan (Senin = 1)
       // DateTime.weekday: 1 = Senin, 7 = Minggu
       int startWeekday = firstDay.weekday - 1; // 0 = Senin, 6 = Minggu
-      
+
       // Add empty days for alignment
       for (int i = 0; i < startWeekday; i++) {
         days.add({'day': '', 'isSelected': false, 'date': null});
@@ -180,8 +177,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
         final isSelected =
             _selectedDate.year == date.year &&
-            _selectedDate.month == date.month &&
-            _selectedDate.day == date.day;
+                _selectedDate.month == date.month &&
+                _selectedDate.day == date.day;
 
         days.add({
           'day': day.toString(),
@@ -231,7 +228,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       List<bool> statuses = [];
       for (var med in medsData) {
         final log = (logsData as List).firstWhere(
-          (l) => l['medication_id'] == med['id'],
+              (l) => l['medication_id'] == med['id'],
           orElse: () => null,
         );
         statuses.add(log != null ? log['is_taken'] : false);
@@ -305,9 +302,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ),
       ),
     ).then((result) {
-      if (result == true) {
-        _fetchData();
-      }
+      _fetchData();
     });
   }
 
@@ -459,7 +454,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   )
                 else
                   ..._todayMedications.map(
-                    (med) => _buildMedicationTimeline(
+                        (med) => _buildMedicationTimeline(
                       timeStart: med['timeStart'],
                       timeEnd: med['timeEnd'],
                       medName: med['name'],

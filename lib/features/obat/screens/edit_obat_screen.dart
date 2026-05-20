@@ -16,24 +16,23 @@ class _EditObatScreenState extends State<EditObatScreen> {
   // Controllers
   late TextEditingController _nameController;
   late TextEditingController _dosageController;
+  late TextEditingController _frequencyController;
   late TextEditingController _quantityController;
   late TextEditingController _perIntakeController;
   late TextEditingController _notesController;
-  
+
   // Variables
   late String _selectedUnit;
-  late String _selectedFrequency;
   late String _selectedPillUnit;
   late List<TimeOfDay> _multipleTimes;
   late List<bool> _timeChecked;
   late DateTime? _startDate;
   late DateTime? _endDate;
-  
+
   bool _isLoading = false;
-  
+
   // Options
   final List<String> _unitOptions = ['Mg', 'Ml', 'Gram', 'mcg'];
-  final List<String> _frequencyOptions = ['1x Sehari', '2x Sehari', '3x Sehari'];
   final List<String> _pillUnitOptions = ['Pil', 'Kapsul', 'Tablet', 'Sendok'];
 
   @override
@@ -43,28 +42,13 @@ class _EditObatScreenState extends State<EditObatScreen> {
   }
 
   void _initializeData() {
-    // Nama Obat
     _nameController = TextEditingController(text: widget.medication['name'] ?? '');
-    
-    // Dosis
     _initializeDosageData();
-    
-    // Frekuensi - PASTIKAN NILAI VALID
     _initializeFrequencyData();
-    
-    // Jumlah Obat
     _initializeQuantityData();
-    
-    // Jumlah Sekali Minum
     _initializePerIntakeData();
-    
-    // Waktu Minum
     _initializeScheduleTimes();
-    
-    // Durasi
     _initializeDurationData();
-    
-    // Catatan
     _notesController = TextEditingController(text: widget.medication['notes'] ?? '');
   }
 
@@ -91,23 +75,9 @@ class _EditObatScreenState extends State<EditObatScreen> {
 
   void _initializeFrequencyData() {
     String rawFrequency = widget.medication['frequency'] ?? '';
-    
-    // Normalisasi nilai frekuensi ke format yang valid
-    if (rawFrequency.contains('1x') || rawFrequency == '1x Sehari') {
-      _selectedFrequency = '1x Sehari';
-    } else if (rawFrequency.contains('2x') || rawFrequency == '2x Sehari') {
-      _selectedFrequency = '2x Sehari';
-    } else if (rawFrequency.contains('3x') || rawFrequency == '3x Sehari') {
-      _selectedFrequency = '3x Sehari';
-    } else {
-      // Default ke 2x Sehari jika tidak dikenali
-      _selectedFrequency = '2x Sehari';
-    }
-    
-    // Pastikan nilai selalu ada di dalam _frequencyOptions
-    if (!_frequencyOptions.contains(_selectedFrequency)) {
-      _selectedFrequency = '2x Sehari';
-    }
+    final match = RegExp(r'\d+').firstMatch(rawFrequency);
+    String initialCount = match != null ? match.group(0)! : '2';
+    _frequencyController = TextEditingController(text: initialCount);
   }
 
   void _initializeQuantityData() {
@@ -117,8 +87,7 @@ class _EditObatScreenState extends State<EditObatScreen> {
       _quantityController = TextEditingController(text: '');
     }
     _selectedPillUnit = widget.medication['per_intake_unit'] ?? 'Pil';
-    
-    // Pastikan nilai unit valid
+
     if (!_pillUnitOptions.contains(_selectedPillUnit)) {
       _selectedPillUnit = 'Pil';
     }
@@ -135,13 +104,13 @@ class _EditObatScreenState extends State<EditObatScreen> {
   void _initializeScheduleTimes() {
     _multipleTimes = [];
     _timeChecked = [];
-    
-    String scheduleTimes = widget.medication['schedule_times'] ?? 
-                          widget.medication['schedule_time'] ?? 
-                          '08:00:00';
-    
+
+    String scheduleTimes = widget.medication['schedule_times'] ??
+        widget.medication['schedule_time'] ??
+        '08:00:00';
+
     List<String> times = scheduleTimes.split(',');
-    
+
     for (int i = 0; i < times.length; i++) {
       String timeStr = times[i].trim();
       if (timeStr.length >= 5) {
@@ -152,18 +121,12 @@ class _EditObatScreenState extends State<EditObatScreen> {
         _timeChecked.add(true);
       }
     }
-    
-    // Default jika tidak ada data
-    if (_multipleTimes.isEmpty) {
-      _multipleTimes = [
-        const TimeOfDay(hour: 8, minute: 0),
-        const TimeOfDay(hour: 18, minute: 0),
-      ];
-      _timeChecked = [true, true];
+
+    int expectedCount = int.tryParse(_frequencyController.text.trim()) ?? 0;
+    if (expectedCount == 0 && _multipleTimes.isNotEmpty) {
+      expectedCount = _multipleTimes.length;
     }
-    
-    // Sesuaikan jumlah waktu dengan frekuensi
-    int expectedCount = _getExpectedTimeCount();
+
     while (_multipleTimes.length < expectedCount) {
       _multipleTimes.add(const TimeOfDay(hour: 12, minute: 0));
       _timeChecked.add(true);
@@ -172,13 +135,6 @@ class _EditObatScreenState extends State<EditObatScreen> {
       _multipleTimes.removeLast();
       _timeChecked.removeLast();
     }
-  }
-
-  int _getExpectedTimeCount() {
-    if (_selectedFrequency == '1x Sehari') return 1;
-    if (_selectedFrequency == '2x Sehari') return 2;
-    if (_selectedFrequency == '3x Sehari') return 3;
-    return 2;
   }
 
   void _initializeDurationData() {
@@ -191,7 +147,7 @@ class _EditObatScreenState extends State<EditObatScreen> {
     } else {
       _startDate = DateTime.now();
     }
-    
+
     if (widget.medication['end_date'] != null) {
       try {
         _endDate = DateTime.parse(widget.medication['end_date'].toString());
@@ -278,17 +234,23 @@ class _EditObatScreenState extends State<EditObatScreen> {
     return activeTimes;
   }
 
-  void _adjustTimeSlots() {
-    int expectedCount = _getExpectedTimeCount();
-    while (_multipleTimes.length < expectedCount) {
-      _multipleTimes.add(const TimeOfDay(hour: 12, minute: 0));
-      _timeChecked.add(true);
-    }
-    while (_multipleTimes.length > expectedCount) {
-      _multipleTimes.removeLast();
-      _timeChecked.removeLast();
-    }
-    setState(() {});
+  // LOGIKA BARU: Menerima String langsung & mengabaikan jika kosong (biar aman pas dihapus/backspace)
+  void _adjustTimeSlots(String value) {
+    if (value.trim().isEmpty) return; // Mencegah reset ke 0 saat user sedang mengetik
+
+    int expectedCount = int.tryParse(value.trim()) ?? _multipleTimes.length;
+    if (expectedCount > 12) expectedCount = 12; // Batas maksimal agar tidak eror jika diketik 99
+
+    setState(() {
+      while (_multipleTimes.length < expectedCount) {
+        _multipleTimes.add(const TimeOfDay(hour: 12, minute: 0));
+        _timeChecked.add(true);
+      }
+      while (_multipleTimes.length > expectedCount) {
+        _multipleTimes.removeLast();
+        _timeChecked.removeLast();
+      }
+    });
   }
 
   Future<void> _updateMedication() async {
@@ -315,21 +277,25 @@ class _EditObatScreenState extends State<EditObatScreen> {
       final dosageText = "${_dosageController.text.trim()} $_selectedUnit";
       final activeTimes = _getActiveTimes();
       final scheduleTimes = activeTimes.map((t) => _formatTimeForDB(t)).join(',');
-      
+
       final startDateStr = _startDate?.toIso8601String().split('T')[0];
       final endDateStr = _endDate?.toIso8601String().split('T')[0];
+
+      String frequencyString = _frequencyController.text.trim().isNotEmpty
+          ? '${_frequencyController.text.trim()}x Sehari'
+          : '1x Sehari';
 
       final updateData = {
         'name': _nameController.text.trim(),
         'dosage': dosageText,
         'dosage_value': int.tryParse(_dosageController.text.trim()),
         'dosage_unit': _selectedUnit,
-        'frequency': _selectedFrequency,
+        'frequency': frequencyString,
         'total_quantity': int.tryParse(_quantityController.text.trim()) ?? 0,
         'quantity_per_intake': int.tryParse(_perIntakeController.text.trim()) ?? 1,
         'per_intake_unit': _selectedPillUnit,
         'schedule_times': scheduleTimes,
-        'schedule_time': scheduleTimes.split(',').first,
+        'schedule_time': scheduleTimes.isNotEmpty ? scheduleTimes.split(',').first : null,
         'start_date': startDateStr,
         'end_date': endDateStr,
         'notes': _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
@@ -407,18 +373,15 @@ class _EditObatScreenState extends State<EditObatScreen> {
             ),
             const SizedBox(height: 20),
 
-            _buildSectionTitle('Frekuensi'),
+            _buildSectionTitle('Frekuensi (Berapa kali sehari?)'),
             const SizedBox(height: 8),
-            _buildDropdown(
-              value: _selectedFrequency,
-              items: _frequencyOptions,
+            _buildTextField(
+              controller: _frequencyController,
+              hint: 'Contoh isi angka: 3',
+              keyboardType: TextInputType.number,
+              // DISINI LOGIKA BARUNYA BEKERJA
               onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _selectedFrequency = value;
-                    _adjustTimeSlots();
-                  });
-                }
+                _adjustTimeSlots(value);
               },
             ),
             const SizedBox(height: 20),
@@ -491,7 +454,8 @@ class _EditObatScreenState extends State<EditObatScreen> {
                 );
               }),
             ),
-            const SizedBox(height: 20),
+
+            const SizedBox(height: 10),
 
             _buildSectionTitle('Durasi'),
             const SizedBox(height: 8),
@@ -560,10 +524,12 @@ class _EditObatScreenState extends State<EditObatScreen> {
     required TextEditingController controller,
     required String hint,
     TextInputType keyboardType = TextInputType.text,
+    ValueChanged<String>? onChanged,
   }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
+      onChanged: onChanged,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: GoogleFonts.poppins(color: Colors.grey.shade400, fontSize: 14),
@@ -607,9 +573,10 @@ class _EditObatScreenState extends State<EditObatScreen> {
   void dispose() {
     _nameController.dispose();
     _dosageController.dispose();
+    _frequencyController.dispose();
     _quantityController.dispose();
     _perIntakeController.dispose();
     _notesController.dispose();
     super.dispose();
   }
-} 
+}
