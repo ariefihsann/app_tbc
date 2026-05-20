@@ -8,11 +8,12 @@ plugins {
 android {
     namespace = "com.example.app_tbc"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "26.3.11579264"
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -41,4 +42,10 @@ android {
 
 flutter {
     source = "../.."
+}
+
+// ---> INI DIA YANG HILANG (TARUH PALING BAWAH) <---
+dependencies {
+    // Ubah angka di ujungnya saja:
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
