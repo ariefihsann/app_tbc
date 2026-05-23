@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../home/home_screen.dart'; // Sesuaikan lokasi file home
-import 'history_screen.dart'; // Sesuaikan lokasi file history
-import '../auth/screens/login_screen.dart'; // Untuk fitur logout
+import '../home/home_screen.dart';
+import 'history_screen.dart';
+import '../auth/screens/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -15,7 +15,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   String _fullName = 'Loading...';
   String _email = 'Loading...';
-  bool _isPaused = true; // State untuk toggle notifikasi
+  bool _isPaused = true;
 
   @override
   void initState() {
@@ -29,7 +29,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final user = supabase.auth.currentUser;
 
       if (user != null) {
-        // Ambil nama dari tabel profiles
         final data = await supabase
             .from('profiles')
             .select('full_name')
@@ -53,22 +52,113 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // Fungsi tambahan untuk Logout (Ditaruh di tombol Reset Account)
-  Future<void> _signOut() async {
-    await Supabase.instance.client.auth.signOut();
-    if (mounted) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-        (route) => false,
+  // Fungsi Reset Account (nanti diisi)
+  Future<void> _resetAccount() async {
+    // Tampilkan dialog konfirmasi reset account
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Reset Account',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: Text(
+          'Are you sure? This will delete all your medication data.',
+          style: GoogleFonts.poppins(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.poppins(
+                color: Colors.grey,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              'Reset',
+              style: GoogleFonts.poppins(
+                color: Colors.orange,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      // TODO: Implement reset account logic
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Reset account feature coming soon...'),
+          backgroundColor: Colors.orange,
+        ),
       );
+    }
+  }
+
+  // Fungsi Logout
+  Future<void> _signOut() async {
+    // Tampilkan dialog konfirmasi logout
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Logout',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to logout?',
+          style: GoogleFonts.poppins(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.poppins(
+                color: Colors.grey,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              'Logout',
+              style: GoogleFonts.poppins(
+                color: Colors.red,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await Supabase.instance.client.auth.signOut();
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (route) => false,
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), // Warna background senada
+      backgroundColor: const Color(0xFFF8F9FA),
       body: Stack(
         children: [
           SingleChildScrollView(
@@ -76,7 +166,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 100), // Spasi atas
+                const SizedBox(height: 100),
 
                 Container(
                   width: 100,
@@ -89,7 +179,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       fit: BoxFit.cover,
                     ),
                   ),
-                  // Fallback jika gambar tidak ada
                   child: const Icon(
                     Icons.person,
                     size: 50,
@@ -98,7 +187,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Nama & Email
                 Text(
                   _fullName,
                   style: GoogleFonts.poppins(
@@ -163,12 +251,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       Divider(height: 1, color: Colors.grey.shade200),
 
-                      // Menu Reset Account / Logout
+                      // Menu Reset Account
                       InkWell(
-                        onTap: () {
-                          // Untuk sementara kita jadikan fungsi Logout agar Mas Arif gampang ganti akun
-                          _signOut();
-                        },
+                        onTap: _resetAccount,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -194,6 +279,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               const Icon(
                                 Icons.chevron_right,
                                 color: Colors.black87,
+                                size: 22,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      Divider(height: 1, color: Colors.grey.shade200),
+
+                      // Menu Logout (tambahan baru)
+                      InkWell(
+                        onTap: _signOut,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 20,
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.logout,
+                                color: Colors.red,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Text(
+                                  'Logout',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right,
+                                color: Colors.red,
                                 size: 22,
                               ),
                             ],
@@ -227,7 +350,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  // Tombol Home (Inactive)
                   IconButton(
                     icon: const Icon(
                       Icons.home_outlined,
@@ -253,7 +375,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       );
                     },
                   ),
-
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -265,7 +386,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     child: Row(
                       children: [
-                        // Perbaikan ada di baris bawah ini (person_outline)
                         const Icon(
                           Icons.person_outline,
                           color: Color(0xFF4A89F3),

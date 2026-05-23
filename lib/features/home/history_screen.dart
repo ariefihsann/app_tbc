@@ -86,8 +86,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ? _formatTimeForDisplay(times.last)
             : timeStart;
 
-        // --- PERBAIKAN DI SINI ---
-        // Menggunakan ...med untuk menyalin SELURUH kolom dari database
         combined.add({
           ...med,
           'timeStart': timeStart,
@@ -147,8 +145,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
           .select('id')
           .eq('user_id', user.id);
 
-      final int totalMedsPerDay = medsData.length;
-
       _logsCache = {};
       for (var log in logsData) {
         String date = log['log_date'];
@@ -205,8 +201,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Future<List<bool>> _getStatusForDate(DateTime date) async {
     final dateStr = date.toIso8601String().split('T')[0];
 
+    // Cek cache dulu
     if (_logsCache.containsKey(dateStr)) {
-      return _logsCache[dateStr]!;
+      return _logsCache[dateStr] ?? [];
     }
 
     try {
@@ -214,28 +211,46 @@ class _HistoryScreenState extends State<HistoryScreen> {
       final user = supabase.auth.currentUser;
       if (user == null) return [];
 
+      // Ambil semua medications user
       final medsData = await supabase
           .from('medications')
           .select('id')
           .eq('user_id', user.id);
 
-      final logsData = await supabase
+      if (medsData.isEmpty) return [];
+
+      // Ambil logs untuk tanggal tersebut
+      final logsResponse = await supabase
           .from('medication_logs')
           .select()
           .eq('user_id', user.id)
           .eq('log_date', dateStr);
 
-      List<bool> statuses = [];
-      for (var med in medsData) {
-        final log = (logsData as List).firstWhere(
-              (l) => l['medication_id'] == med['id'],
-          orElse: () => null,
-        );
-        statuses.add(log != null ? log['is_taken'] : false);
+      final logsList = logsResponse as List;
+      
+      // Buat map untuk memudahkan pencarian
+      Map<String, dynamic> logsMap = {};
+      for (var log in logsList) {
+        logsMap[log['medication_id'].toString()] = log;
       }
 
+      // Buat list status berdasarkan medications
+      List<bool> statuses = [];
+      for (var med in medsData) {
+        final medId = med['id'].toString();
+        if (logsMap.containsKey(medId)) {
+          // Ada log, ambil status is_taken
+          statuses.add(logsMap[medId]['is_taken'] == true);
+        } else {
+          // Tidak ada log, berarti belum diminum
+          statuses.add(false);
+        }
+      }
+
+      // Simpan ke cache
       _logsCache[dateStr] = statuses;
       return statuses;
+      
     } catch (e) {
       print('Error fetching status for date: $e');
       return [];
@@ -260,6 +275,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Color _getColorForMed(String medName) {
+    if (medName.isEmpty) return _medColors[0];
     int hash = 0;
     for (int i = 0; i < medName.length; i++) {
       hash = (hash + medName.codeUnitAt(i)) % _medColors.length;
@@ -382,9 +398,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       FutureBuilder<List<bool>>(
                         future: _getStatusForDate(_selectedDate),
                         builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            );
+                          }
+                          
                           if (!snapshot.hasData || snapshot.data!.isEmpty) {
                             return const SizedBox.shrink();
                           }
+                          
                           final statuses = snapshot.data!;
                           int takenCount = statuses.where((s) => s == true).length;
                           int totalCount = statuses.length;
@@ -457,8 +482,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         (med) => _buildMedicationTimeline(
                       timeStart: med['timeStart'],
                       timeEnd: med['timeEnd'],
-                      medName: med['name'],
-                      dosage: med['dosage'],
+                      medName: med['name'] ?? 'Obat',
+                      dosage: med['dosage'] ?? '-',
                       iconColor: med['iconColor'],
                       medicationData: med,
                       onTap: () => _navigateToDetail(med),
@@ -638,7 +663,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
               bool isSelected = dayData['isSelected'];
               DateTime date = dayData['date'];
-              int dayNumber = int.parse(dayData['day']);
 
               return GestureDetector(
                 onTap: () => _selectDate(date),
@@ -659,13 +683,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      // Status dot untuk tanggal yang dipilih
+                      // PERUBAHAN: Dot hanya untuk tanggal yang dipilih (isSelected)
                       if (isSelected)
                         FutureBuilder<List<bool>>(
                           future: _getStatusForDate(date),
                           builder: (context, snapshot) {
                             if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                              return const SizedBox(height: 4);
+                              return Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Colors.grey,
+                                  shape: BoxShape.circle,
+                                ),
+                              );
                             }
                             final statuses = snapshot.data!;
                             int takenCount = statuses.where((s) => s == true).length;
@@ -702,7 +733,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           },
                         )
                       else
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 4), // Hanya spacer untuk menjaga tinggi konsisten
                     ],
                   ),
                 ),

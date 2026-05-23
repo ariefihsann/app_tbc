@@ -42,11 +42,19 @@ dependencies:
   flutter_dotenv: ^6.0.1
   intl: ^0.20.2  
   flutter_timezone: ^5.0.2
+  flutter_launcher_icons: ^0.14.4
 
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+flutter_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/logo_tbc.png"  # Ganti dengan path logo Anda
+  adaptive_icon_background: "#FFFFFF"  # Warna background untuk Android
+  adaptive_icon_foreground: "assets/images/logo_tbc.png" # Path logo untuk adaptive icon
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
