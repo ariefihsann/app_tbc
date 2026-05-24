@@ -23,7 +23,7 @@ class _DetailObatScreenState extends State<DetailObatScreen> {
   DateTime? _takenAt;
   bool _isLoading = false;
   late Map<String, dynamic> _medication;
-  bool _isModified = false; // Untuk menandai jika ada perubahan data
+  bool _isModified = false;
 
   @override
   void initState() {
@@ -33,7 +33,165 @@ class _DetailObatScreenState extends State<DetailObatScreen> {
     _takenAt = _medication['takenAt'];
   }
 
-  // --- FUNGSI BARU UNTUK MENGAMBIL DATA TERBARU ---
+  // NOTIFIKASI SUKSES DI ATAS (TOP SNACKBAR)
+  void _showTopSuccessNotification(String title, String message) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Container(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      message,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.white70,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '✓',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        backgroundColor: const Color(0xFF10B981),
+        elevation: 0,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.only(top: 10, left: 16, right: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        duration: const Duration(seconds: 2),
+        dismissDirection: DismissDirection.horizontal,
+      ),
+    );
+  }
+
+  void _showTopErrorNotification(String message) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Container(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.error_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Failed!',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      message,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.white70,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '✗',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        backgroundColor: Colors.red.shade400,
+        elevation: 0,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.only(top: 10, left: 16, right: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        duration: const Duration(seconds: 2),
+        dismissDirection: DismissDirection.horizontal,
+      ),
+    );
+  }
+
   Future<void> _fetchLatestMedicationData() async {
     setState(() => _isLoading = true);
     try {
@@ -45,8 +203,8 @@ class _DetailObatScreenState extends State<DetailObatScreen> {
           .single();
 
       setState(() {
-        _medication = response; // Update Map lokal dengan data terbaru
-        _isModified = true; // Tandai bahwa data telah berubah
+        _medication = response;
+        _isModified = true;
       });
     } catch (e) {
       print('Error fetching updated data: $e');
@@ -57,7 +215,6 @@ class _DetailObatScreenState extends State<DetailObatScreen> {
     }
   }
 
-  // Helper functions
   String _getSafeTime() {
     if (_medication['time'] != null && _medication['time'].toString().isNotEmpty) {
       return _medication['time'];
@@ -175,11 +332,11 @@ class _DetailObatScreenState extends State<DetailObatScreen> {
       }, onConflict: 'user_id, medication_id, log_date');
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(newStatus ? 'Obat ditandai sudah diminum' : 'Status obat dibatalkan'),
-            backgroundColor: newStatus ? Colors.green : Colors.orange,
-          ),
+        _showTopSuccessNotification(
+          newStatus ? 'Marked as Taken' : 'Status Updated',
+          newStatus 
+            ? '${_medication['name']} telah ditandai sudah diminum'
+            : '${_medication['name']} status dibatalkan'
         );
       }
     } catch (e) {
@@ -188,9 +345,7 @@ class _DetailObatScreenState extends State<DetailObatScreen> {
         _takenAt = !newStatus ? DateTime.now() : null;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal mengupdate status')),
-        );
+        _showTopErrorNotification('Gagal mengupdate status');
       }
     }
   }
@@ -199,17 +354,46 @@ class _DetailObatScreenState extends State<DetailObatScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Hapus Obat'),
-        content: const Text('Apakah Anda yakin ingin menghapus obat ini?'),
+        titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        actionsPadding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
+        title: Row(
+          children: [
+            const Icon(Icons.delete_outline, color: Colors.red, size: 24),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Hapus Obat',
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Apakah Anda yakin ingin menghapus ${_medication['name']}?',
+          style: GoogleFonts.poppins(fontSize: 13),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Batal'),
+            child: Text(
+              'Batal',
+              style: GoogleFonts.poppins(color: Colors.grey, fontWeight: FontWeight.w500),
+            ),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Hapus'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(
+              'Hapus',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
@@ -223,23 +407,20 @@ class _DetailObatScreenState extends State<DetailObatScreen> {
       await supabase.from('medications').delete().eq('id', _medication['id']);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Obat berhasil dihapus')),
-        );
+        // Tampilkan notifikasi sukses di ATAS
+        _showTopSuccessNotification('obat successfully deleted', _medication['name']);
+        
+        // Langsung kembali ke history tanpa delay
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal menghapus obat')),
-        );
+        _showTopErrorNotification('Gagal menghapus obat, silakan coba lagi');
+        setState(() => _isLoading = false);
       }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  // --- REVISI METHOD INI ---
   Future<void> _editMedication() async {
     final result = await Navigator.push(
       context,
@@ -248,17 +429,13 @@ class _DetailObatScreenState extends State<DetailObatScreen> {
       ),
     );
 
-    // Jika halaman edit mengembalikan 'true' (berhasil edit)
     if (result == true) {
-      // Ambil data segar dari Supabase agar detail ter-update langsung!
       await _fetchLatestMedicationData();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Gunakan WillPopScope (atau PopScope di Flutter terbaru) agar jika data berubah,
-    // halaman sebelumnya (Home) tau bahwa dia harus refresh data.
     return WillPopScope(
       onWillPop: () async {
         Navigator.pop(context, _isModified);
@@ -279,7 +456,6 @@ class _DetailObatScreenState extends State<DetailObatScreen> {
           iconTheme: const IconThemeData(color: Colors.black),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            // Kembali dengan membawa status apakah data pernah di-edit
             onPressed: () => Navigator.pop(context, _isModified),
           ),
           actions: [

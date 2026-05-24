@@ -3,8 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:app_tbc/core/services/notification_service.dart';
-import 'package:flutter_timezone/flutter_timezone.dart';
-
 
 class AddObatScreen extends StatefulWidget {
   const AddObatScreen({super.key});
@@ -45,14 +43,12 @@ class _AddObatScreenState extends State<AddObatScreen> {
   }
 
   void _initializeTimeSlots() {
-    // Reset time slots berdasarkan frekuensi
     _multipleTimes = [];
     _timeChecked = [];
     
     int timeCount = _getTimeCountByFrequency();
     
     for (int i = 0; i < timeCount; i++) {
-      // Set default times: jam 8 untuk pertama, jam 12 untuk kedua, jam 18 untuk ketiga
       if (i == 0) {
         _multipleTimes.add(const TimeOfDay(hour: 8, minute: 0));
       } else if (i == 1) {
@@ -129,12 +125,6 @@ class _AddObatScreenState extends State<AddObatScreen> {
     });
   }
 
-  String _formatTime(TimeOfDay time) {
-    final hour = time.hour.toString().padLeft(2, '0');
-    final minute = time.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
-  }
-
   String _formatTime12Hour(TimeOfDay time) {
     final period = time.hour >= 12 ? 'PM' : 'AM';
     final hour12 = time.hour > 12 ? time.hour - 12 : (time.hour == 0 ? 12 : time.hour);
@@ -145,19 +135,176 @@ class _AddObatScreenState extends State<AddObatScreen> {
     return DateFormat('dd MMM yyyy').format(date);
   }
 
+  // NOTIFIKASI DI ATAS (TOP SNACKBAR) - TANPA DELAY
+  void _showTopSuccessNotification(String medicineName) {
+    // Hilangkan snackbar sebelumnya jika ada
+    ScaffoldMessenger.of(context).clearSnackBars();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Container(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Obat successfully added',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      medicineName,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.white70,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '✓',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        backgroundColor: const Color(0xFF10B981),
+        elevation: 0,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.only(top: 10, left: 16, right: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        duration: const Duration(seconds: 2),
+        dismissDirection: DismissDirection.horizontal,
+      ),
+    );
+  }
+
+  void _showTopErrorNotification(String message) {
+    // Hilangkan snackbar sebelumnya jika ada
+    ScaffoldMessenger.of(context).clearSnackBars();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Container(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.error_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Failed!',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      message,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.white70,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '✗',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        backgroundColor: Colors.red.shade400,
+        elevation: 0,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.only(top: 10, left: 16, right: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        duration: const Duration(seconds: 2),
+        dismissDirection: DismissDirection.horizontal,
+      ),
+    );
+  }
+
   Future<void> _saveMedication() async {
     // Validations
     if (_nameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nama obat tidak boleh kosong!')),
-      );
+      _showTopErrorNotification('Nama obat tidak boleh kosong');
       return;
     }
 
     if (_dosageController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Dosis tidak boleh kosong!')),
-      );
+      _showTopErrorNotification('Dosis tidak boleh kosong');
       return;
     }
 
@@ -178,7 +325,7 @@ class _AddObatScreenState extends State<AddObatScreen> {
       final startDateStr = _startDate?.toIso8601String().split('T')[0];
       final endDateStr = _endDate?.toIso8601String().split('T')[0];
 
-      await supabase.from('medications').insert({
+      final response = await supabase.from('medications').insert({
         'user_id': user.id,
         'name': _nameController.text.trim(),
         'dosage': dosageText,
@@ -194,44 +341,38 @@ class _AddObatScreenState extends State<AddObatScreen> {
         'end_date': endDateStr,
         'notes': _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         'created_at': DateTime.now().toIso8601String(),
-      });
+      }).select();
 
-      try {
-        print('\n=== 🚀 MULAI MEMASANG ALARM TES ===');
-
-        // KITA PAKSA ALARM BUNYI TEPAT 1 MENIT DARI TOMBOL SIMPAN DITEKAN
-        // Mengabaikan jam yang dipilih di layar UI
-        final waktuTes = TimeOfDay.fromDateTime(DateTime.now().add(const Duration(minutes: 1)));
-        print('⏰ Alarm diset untuk jam: ${waktuTes.hour}:${waktuTes.minute}');
-
+      // Setup notifications for each active time
+      final medicationId = response[0]['id'];
+      for (int i = 0; i < activeTimes.length; i++) {
+        final time = activeTimes[i];
+        
+        // Create unique ID for each reminder
+        final uniqueId = (medicationId.toString() + i.toString()).hashCode;
+        
         await NotificationService().scheduleDailyMedicationReminder(
-          id: 999,
-          title: 'TES NOTIFIKASI!',
-          body: 'Notifikasi berhasil menyala Mas Arif!',
-          time: waktuTes,
+          id: uniqueId,
+          title: 'Waktu Minum Obat',
+          body: 'Waktunya minum ${_nameController.text.trim()}',
+          time: time,
         );
-
-        print('=== ✅ ALARM BERHASIL DIPASANG ===\n');
-      } catch (err) {
-        print('\n=== ❌ GAGAL MEMASANG ALARM ===');
-        print('Alasan Error: $err');
-        print('================================\n');
+        
+        print('✅ Notifikasi dipasang untuk ${_formatTime12Hour(time)}');
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Obat berhasil ditambahkan!'), backgroundColor: Colors.green),
-        );
+        // Tampilkan notifikasi sukses di ATAS
+        _showTopSuccessNotification(_nameController.text.trim());
+        
+        // LANGSUNG KEMBALI KE HISTORY TANPA DELAY
         Navigator.pop(context, true);
       }
     } catch (e) {
       print('Error saving medication: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal menyimpan obat'), backgroundColor: Colors.red),
-        );
+        _showTopErrorNotification('Gagal menyimpan obat, silakan coba lagi');
       }
-    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -379,7 +520,7 @@ class _AddObatScreenState extends State<AddObatScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Waktu Minum - Tanpa Label Pertama/Kedua/Ketiga
+            // Waktu Minum
             _buildSectionTitle('Waktu Minum'),
             const SizedBox(height: 8),
             Column(

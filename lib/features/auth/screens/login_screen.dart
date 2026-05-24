@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // Import Supabase
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'register_screen.dart';
-import '../../home/home_screen.dart'; // Import layar Home
+import '../../home/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,24 +12,36 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // 1. Siapkan controller
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _isPasswordVisible = false; // State untuk show/hide password
 
-  // 2. Fungsi Login
   Future<void> _signIn() async {
+    // Validasi input tidak kosong
+    if (_emailController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Email tidak boleh kosong!'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    
+    if (_passwordController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password tidak boleh kosong!'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       final supabase = Supabase.instance.client;
 
-      // Proses autentikasi email & password
       await supabase.auth.signInWithPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      // Jika berhasil, pindah ke HomeScreen
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -121,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 8),
 
-              // Sub-judul & Sign Up (Link Aktif)
+              // Sub-judul & Sign Up
               Row(
                 children: [
                   Text(
@@ -150,86 +162,133 @@ class _LoginScreenState extends State<LoginScreen> {
 
               // Input Email
               CustomShadowInput(
-                controller: _emailController, // Pasang controller
+                controller: _emailController,
                 icon: Icons.mail_outline,
                 hintText: 'Email',
               ),
               const SizedBox(height: 24),
 
-              // Input Password
+              // Input Password dengan Icon Mata
               CustomShadowInput(
-                controller: _passwordController, // Pasang controller
+                controller: _passwordController,
                 icon: Icons.lock_outline,
                 hintText: 'Password',
-                isPassword: true,
+                isPassword: !_isPasswordVisible,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.grey,
+                    size: 20,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isPasswordVisible = !_isPasswordVisible;
+                    });
+                  },
+                ),
               ),
               const SizedBox(height: 54),
 
-              // Row Bawah: Google & Login Button
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Ikon Google Placeholder
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.12),
-                          blurRadius: 15,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+              // Tombol Login Full Width
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _signIn,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF5B92F5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
                     ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.g_mobiledata,
-                        color: Colors.grey,
-                        size: 30,
-                      ),
-                    ),
+                    elevation: 0,
                   ),
-
-                  // Tombol Login
-                  SizedBox(
-                    width: 130,
-                    height: 46,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _signIn, // Panggil fungsi login
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF5B92F5),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'login',
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
                           ),
-                          const SizedBox(width: 8),
-                          const Icon(Icons.login_rounded, color: Colors.white, size: 18),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Login',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.login_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                          ],
+                        ),
+                ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// Custom Input Widget dengan Shadow
+class CustomShadowInput extends StatelessWidget {
+  final TextEditingController controller;
+  final IconData icon;
+  final String hintText;
+  final bool isPassword;
+  final Widget? suffixIcon;
+
+  const CustomShadowInput({
+    super.key,
+    required this.controller,
+    required this.icon,
+    required this.hintText,
+    this.isPassword = false,
+    this.suffixIcon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: isPassword,
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, color: Colors.grey, size: 20),
+          suffixIcon: suffixIcon,
+          hintText: hintText,
+          hintStyle: GoogleFonts.poppins(
+            fontSize: 12,
+            color: Colors.grey,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
         ),
       ),
     );

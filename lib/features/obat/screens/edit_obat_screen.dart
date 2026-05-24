@@ -234,12 +234,11 @@ class _EditObatScreenState extends State<EditObatScreen> {
     return activeTimes;
   }
 
-  // LOGIKA BARU: Menerima String langsung & mengabaikan jika kosong (biar aman pas dihapus/backspace)
   void _adjustTimeSlots(String value) {
-    if (value.trim().isEmpty) return; // Mencegah reset ke 0 saat user sedang mengetik
+    if (value.trim().isEmpty) return;
 
     int expectedCount = int.tryParse(value.trim()) ?? _multipleTimes.length;
-    if (expectedCount > 12) expectedCount = 12; // Batas maksimal agar tidak eror jika diketik 99
+    if (expectedCount > 12) expectedCount = 12;
 
     setState(() {
       while (_multipleTimes.length < expectedCount) {
@@ -253,18 +252,173 @@ class _EditObatScreenState extends State<EditObatScreen> {
     });
   }
 
+  // NOTIFIKASI SUKSES DI ATAS (TOP SNACKBAR)
+  void _showTopSuccessNotification(String medicineName) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Container(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'obat successfully updated',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      medicineName,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.white70,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '✓',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        backgroundColor: const Color(0xFF10B981),
+        elevation: 0,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.only(top: 10, left: 16, right: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        duration: const Duration(seconds: 2),
+        dismissDirection: DismissDirection.horizontal,
+      ),
+    );
+  }
+
+  void _showTopErrorNotification(String message) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Container(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.error_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Failed!',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      message,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.white70,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '✗',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        backgroundColor: Colors.red.shade400,
+        elevation: 0,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.only(top: 10, left: 16, right: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        duration: const Duration(seconds: 2),
+        dismissDirection: DismissDirection.horizontal,
+      ),
+    );
+  }
+
   Future<void> _updateMedication() async {
     if (_nameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nama obat tidak boleh kosong!')),
-      );
+      _showTopErrorNotification('Nama obat tidak boleh kosong');
       return;
     }
 
     if (_dosageController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Dosis tidak boleh kosong!')),
-      );
+      _showTopErrorNotification('Dosis tidak boleh kosong');
       return;
     }
 
@@ -308,26 +462,18 @@ class _EditObatScreenState extends State<EditObatScreen> {
           .eq('id', widget.medication['id']);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Obat berhasil diupdate!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        // Tampilkan notifikasi sukses di ATAS
+        _showTopSuccessNotification(_nameController.text.trim());
+        
+        // LANGSUNG KEMBALI KE HISTORY TANPA DELAY
         Navigator.pop(context, true);
       }
     } catch (e) {
       print('Error update: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal mengupdate obat: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showTopErrorNotification('Gagal mengupdate obat, silakan coba lagi');
+        setState(() => _isLoading = false);
       }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -379,7 +525,6 @@ class _EditObatScreenState extends State<EditObatScreen> {
               controller: _frequencyController,
               hint: 'Contoh isi angka: 3',
               keyboardType: TextInputType.number,
-              // DISINI LOGIKA BARUNYA BEKERJA
               onChanged: (value) {
                 _adjustTimeSlots(value);
               },

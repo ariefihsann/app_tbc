@@ -1,11 +1,11 @@
+import 'package:app_tbc/features/obat/screens/add_obat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:app_tbc/features/home/add_medication_screen.dart';
-import 'package:app_tbc/features/home/notification_screen.dart';
 import 'streak_screen.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
+import 'notification_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -117,14 +117,25 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _findNextMedication() {
+    // Jika tidak ada obat sama sekali
+    if (_todayMeds.isEmpty) {
+      setState(() {
+        _nextMedication = null;
+        _isLoadingNext = false;
+      });
+      return;
+    }
+    
     final now = DateTime.now();
     final currentTime = now.hour * 60 + now.minute;
     
     Map<String, dynamic>? nextMed;
     int smallestTimeDiff = 24 * 60;
+    int notTakenCount = 0;
     
     for (var med in _todayMeds) {
       if (!med['isTaken']) {
+        notTakenCount++;
         final timeParts = med['time'].split(':');
         final medTime = int.parse(timeParts[0]) * 60 + int.parse(timeParts[1]);
         
@@ -142,7 +153,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     
     setState(() {
-      _nextMedication = nextMed;
+      // Jika semua obat sudah diminum (notTakenCount == 0)
+      if (notTakenCount == 0 && _todayMeds.isNotEmpty) {
+        _nextMedication = null; // null berarti semua obat sudah diminum
+      } else {
+        _nextMedication = nextMed; // ada obat yang belum diminum
+      }
       _isLoadingNext = false;
     });
   }
@@ -454,7 +470,61 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
     
-    if (_nextMedication == null) {
+    // Kasus 1: Tidak ada obat sama sekali
+    if (_todayMeds.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.medical_information, color: Colors.orange, size: 28),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Belum Ada Obat!',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange.shade800,
+                    ),
+                  ),
+                  Text(
+                    'Tambahkan obat sekarang untuk memulai pengobatan 💊',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: Colors.orange.shade700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    // Kasus 2: Semua obat sudah diminum (ada obat tapi semua sudah diambil)
+    if (_nextMedication == null && _todayMeds.isNotEmpty) {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -506,6 +576,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
     
+    // Kasus 3: Ada obat yang belum diminum
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -761,7 +832,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 20),
                   ElevatedButton.icon(
                     onPressed: () async {
-                      await Navigator.push(context, MaterialPageRoute(builder: (context) => const AddMedicationScreen()));
+                      await Navigator.push(context, 
+                        MaterialPageRoute(builder: (context) => const AddObatScreen())
+                      );
                       _fetchMedications();
                     },
                     icon: const Icon(Icons.add, size: 18, color: Colors.white),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // Tambahkan import Supabase
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -11,19 +11,39 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  // 1. Siapkan controller untuk menangkap teks inputan
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _isPasswordVisible = false; // State untuk show/hide password
 
-  // 2. Fungsi utama untuk mendaftar ke Supabase
   Future<void> _signUp() async {
+    // Validasi input tidak kosong
+    if (_nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nama lengkap tidak boleh kosong!'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    
+    if (_emailController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Email tidak boleh kosong!'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    
+    if (_passwordController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password tidak boleh kosong!'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       final supabase = Supabase.instance.client;
 
-      // Mendaftarkan user ke sistem Auth Supabase
       final authResponse = await supabase.auth.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
@@ -31,7 +51,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       final user = authResponse.user;
 
-      // Jika berhasil daftar Auth, simpan nama ke tabel 'profiles'
       if (user != null) {
         await supabase.from('profiles').insert({
           'id': user.id,
@@ -42,33 +61,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
         });
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Registrasi Berhasil! Silakan Sign In.'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          // Pindah ke halaman Login setelah sukses
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
-          );
+          // Notifikasi sukses aesthetic di atas
+          _showTopSuccessNotification();
+          
+          // Delay sebelum pindah ke login
+          await Future.delayed(const Duration(milliseconds: 1500));
+          
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginScreen()),
+            );
+          }
         }
       }
     } on AuthException catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.message), backgroundColor: Colors.red),
-        );
+        _showTopErrorNotification(error.message);
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Terjadi kesalahan yang tidak terduga'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showTopErrorNotification('Terjadi kesalahan yang tidak terduga');
       }
     } finally {
       if (mounted) {
@@ -77,7 +90,165 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  // 3. Bersihkan controller saat layar ditutup untuk mencegah memory leak
+  // Notifikasi sukses aesthetic di atas
+  void _showTopSuccessNotification() {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Container(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Registration Successful!',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Please sign in to continue',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.white70,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '✓',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        backgroundColor: const Color(0xFF10B981),
+        elevation: 0,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.only(top: 10, left: 16, right: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        duration: const Duration(seconds: 2),
+        dismissDirection: DismissDirection.horizontal,
+      ),
+    );
+  }
+
+  void _showTopErrorNotification(String message) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Container(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.error_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Registration Failed!',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      message,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.white70,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '✗',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        backgroundColor: Colors.red.shade400,
+        elevation: 0,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.only(top: 10, left: 16, right: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        duration: const Duration(seconds: 2),
+        dismissDirection: DismissDirection.horizontal,
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -145,7 +316,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 8),
 
-              // Sub-judul & Sign In (Link Aktif)
+              // Sub-judul & Sign In
               Row(
                 children: [
                   Text(
@@ -174,98 +345,83 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
               // Input Name
               CustomShadowInput(
-                controller: _nameController, // Menghubungkan controller
+                controller: _nameController,
                 icon: Icons.person_outline,
-                hintText: 'Full Name', // Menambahkan hint text
+                hintText: 'Full Name',
               ),
               const SizedBox(height: 24),
 
               // Input Email
               CustomShadowInput(
-                controller: _emailController, // Menghubungkan controller
+                controller: _emailController,
                 icon: Icons.mail_outline,
-                hintText: 'Email', // Menambahkan hint text
+                hintText: 'Email',
               ),
               const SizedBox(height: 24),
 
-              // Input Password
+              // Input Password dengan Icon Mata
               CustomShadowInput(
-                controller: _passwordController, // Menghubungkan controller
+                controller: _passwordController,
                 icon: Icons.lock_outline,
-                hintText: 'Password', // Menambahkan hint text
-                isPassword: true,
+                hintText: 'Password',
+                isPassword: !_isPasswordVisible,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.grey,
+                    size: 20,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isPasswordVisible = !_isPasswordVisible;
+                    });
+                  },
+                ),
               ),
               const SizedBox(height: 54),
 
-              // Row Bawah: Google & Register Button
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Ikon Google Placeholder
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.12),
-                          blurRadius: 15,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+              // Tombol Register Full Width
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _signUp,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF5B92F5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
                     ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.add_to_home_screen_rounded,
-                        color: Colors.grey,
-                        size: 22,
-                      ),
-                    ),
+                    elevation: 0,
                   ),
-
-                  // Tombol Register dengan indikator Loading
-                  SizedBox(
-                    width: 130,
-                    height: 46,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _signUp, // Panggil fungsi saat ditekan
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF5B92F5),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                          : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Register', // Mengubah label agar sesuai fungsi
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
                           ),
-                          const SizedBox(width: 8),
-                          const Icon(Icons.app_registration, color: Colors.white, size: 18),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Register',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.app_registration,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                          ],
+                        ),
+                ),
               ),
             ],
           ),
@@ -275,12 +431,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 }
 
-// Widget Input (Sudah termasuk parameter controller)
+// Widget Input dengan Shadow
 class CustomShadowInput extends StatelessWidget {
   final IconData icon;
   final String hintText;
   final bool isPassword;
   final TextEditingController? controller;
+  final Widget? suffixIcon;
 
   const CustomShadowInput({
     super.key,
@@ -288,34 +445,42 @@ class CustomShadowInput extends StatelessWidget {
     required this.hintText,
     this.isPassword = false,
     this.controller,
+    this.suffixIcon,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 46,
+      height: 50,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(25),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.12),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: TextField(
         controller: controller,
         obscureText: isPassword,
-        textAlignVertical: TextAlignVertical.center,
         decoration: InputDecoration(
-          prefixIcon: Icon(icon, color: Colors.grey[400], size: 20),
+          prefixIcon: Icon(icon, color: Colors.grey, size: 20),
+          suffixIcon: suffixIcon,
           hintText: hintText,
-          hintStyle: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 14),
-          border: InputBorder.none,
-          isCollapsed: true,
-          contentPadding: const EdgeInsets.only(right: 16),
+          hintStyle: GoogleFonts.poppins(
+            fontSize: 13,
+            color: Colors.grey,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(25),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
         ),
       ),
     );
